@@ -10,7 +10,7 @@
   <div class="container">
     <div class="topbar">
       <div class="brand">
-        <h1>GRAMCAST AI</h1> <small>Farmer dashboard</small>
+        <h1>GRAMCAST AI</h1>
       </div>
       <nav class="topnav">
         <a href="index.html">Home</a>
@@ -22,7 +22,7 @@
     <!-- search -->
     <section class="card">
       <h2>Apna gaon / Panchayat batayein
-        <span class="hi-sub">"Aap kis gaon ya Panchayat ke liye mausam ki jankari chahte hain?"</span>
+        
       </h2>
       <div class="field" style="position:relative;">
         <input id="q" autocomplete="off" placeholder="e.g. Bhondsi, Gurugram, Begusarai">
@@ -35,7 +35,7 @@
 
     <!-- saved locations -->
     <section class="card" id="savedCard" style="display:none;">
-      <h2>Meri saved Panchayatein <span class="hi-sub">ek click mein dobara forecast</span></h2>
+      <h2>Meri saved Panchayatein </h2>
       <div id="savedList"></div>
     </section>
 
@@ -44,7 +44,7 @@
 
     <!-- helpline -->
     <section class="card">
-      <h2>Voice helpline <span class="hi-sub">seedha phone par sunkar aapke Panchayat ka mausam</span></h2>
+      <h2>Voice helpline </h2>
       <p class="sub">
         📞 Dial <strong id="helpline">—</strong> • Agent <code id="agentId">—</code> •
         Voice <span id="voiceName">—</span> • Language <span id="langName">—</span>
@@ -194,7 +194,7 @@
           "</div>" +
           '<div class="adv ' + cls + ' mt"><strong>Kheti ke liye aaj:</strong><br>' + GC.esc(adv.lines.join("<br>")) + "</div></section>";
 
-        html += '<section class="card"><h2>Agale 5 din <span class="hi-sub">din-by-din, sambhavnatein hain — guarantee nahi</span></h2>' +
+        html += '<section class="card"><h2>Agale 5 din </h2>' +
           '<div class="grid cols-5 mt">';
         for (let i = 0; i < n; i++) {
           const day = {

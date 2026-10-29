@@ -60,7 +60,6 @@ body {
 }
 .card h2 { font-size: 1.05rem; color: var(--green-dark); margin-bottom: 6px; }
 .card p.sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 14px; }
-.hi-sub { display: block; font-size: 0.85rem; color: var(--muted); font-weight: 400; }
 
 .grid { display: grid; gap: 16px; }
 .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }

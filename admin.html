@@ -10,7 +10,7 @@
   <div class="container">
     <div class="topbar">
       <div class="brand">
-        <h1>GRAMCAST AI</h1> <small>Admin dashboard</small>
+        <h1>GRAMCAST AI</h1>
       </div>
       <nav class="topnav">
         <a href="index.html">Home</a>
@@ -19,36 +19,32 @@
       </nav>
     </div>
 
-    <!-- system status -->
     <section class="card">
-      <h2>Live deployment status <span class="hi-sub">README ke live-agent table ke anusaar</span></h2>
+      <h2>Live deployment status</h2>
       <div class="grid cols-4" id="statusGrid"></div>
       <dl class="kv mt" id="factsList"></dl>
     </section>
 
     <section class="card">
-      <h2>Now <span class="hi-sub">is session ka snapshot</span></h2>
+      <h2>Now</h2>
       <div class="grid cols-5" id="statGrid"></div>
     </section>
 
-    <!-- usage: web vs calls -->
     <section class="card">
-      <h2>Usage — web dashboard vs phone agent <span class="hi-sub">kitne log web par, kitne call par aaye</span></h2>
+      <h2>Usage — web dashboard vs phone agent</h2>
       <div class="grid cols-4" id="usageGrid"></div>
       <p class="provenance" id="usageNote"></p>
     </section>
 
-    <!-- users & block -->
     <section class="card">
-      <h2>Users & access control <span class="hi-sub">kisi bhi account ko block / unblock karein</span></h2>
+      <h2>Users &amp; access control</h2>
       <p class="sub">Blocked users lose access at their next login attempt or page load. (Demo caveat: they could still re-register under a different username until accounts are tied to verified phone numbers.)</p>
       <div class="provenance sm"><button class="btn sm ok" id="exportUsersBtn">Export Users CSV</button></div>
       <table id="userTable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- user call history card -->
     <section class="card mt">
-      <h2>Call history by user <span class="hi-sub">har user ke update ke saath</span></h2>
+      <h2>Call history by user</h2>
       <div id="callHistoryBox"><p>Loading…</p></div>
     </section>
 
@@ -58,56 +54,34 @@
       <table id="userCallTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- phone agent call log -->
     <section class="card mt">
-      <h2>Phone agent call log <span class="chip warn">sample data</span></h2>
+      <h2>Phone agent call log</h2>
       <div class="provenance sm">Search: <input id="callLogSearch" placeholder="Search caller / village / outcome…"> Filter: <select id="callLogFilter"><option value="">All</option><option value="today">Today</option><option value="answered">Answered</option><option value="no-data">No forecast data</option></select><button class="btn sm ok" id="exportCallLogBtn">Export CSV</button><button class="btn sm" id="viewCallDetailsBtn">View full details</button><button class="btn sm" id="pruneSampleBtn">Prune sample rows</button><button class="btn danger sm" id="clearCallLogBtn">Clear all logs</button></div>
       <table id="callTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th><th></th></tr></thead><tbody></tbody></table>
       <div class="provenance">Sample entries seeded for the demo. Click a row to see raw fields or export a per-call CSV. The 'Prune sample rows' button removes the demo (unresolved) rows so you can start from a clean slate.</div>
     </section>
 
-    <style>
-      #callDetailsCard.hidden { display: none; }
-      #callDetailsTable td { font-size: 0.82rem; word-break: break-all; padding: 5px 8px; }
-      #callDetailsTable tbody tr:nth-child(even) { background: #f7faf8; }
-      .hidden { display: none !important; }
-      #userCallCard .btn { margin-right: 6px; }
-      .num { width: 1%; white-space: nowrap; text-align: center; }
-      .num button { padding: 4px 8px; }
-    </style>
-
-    <style>
-      #callDetailsCard.hidden { display: none; }
-      #callDetailsTable td { font-size: 0.82rem; word-break: break-all; padding: 5px 8px; }
-      #callDetailsTable tbody tr:nth-child(even) { background: #f7faf8; }
-      .hidden { display: none !important; }
-    </style>
-
-    <!-- call log details (raw records inspection) -->
     <section class="card hidden" id="callDetailsCard">
-      <h2>Call log — full records <span class="hi-sub">raw call data ke details (csv / excel me download ke liye)</span></h2>
+      <h2>Call log — full records</h2>
       <p class="provenance">Raw call records with every field. Export as CSV for verification and record-keeping.</p>
       <div class="provenance sm"><button class="btn sm" id="exportCallDetailsBtn">Download all records as CSV</button> <button class="btn sm" id="closeCallDetailsBtn">Close</button></div>
       <table id="callDetailsTable"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- locations registry -->
     <section class="card">
-      <h2>Panchayat registry <span class="hi-sub">sabhi users ki geocoded locations</span></h2>
+      <h2>Panchayat registry</h2>
       <p class="sub">Coordinates only become a forecast once get_weather is called for them.</p>
       <table id="locTable"><thead><tr><th>User</th><th>Place</th><th>District/Region</th><th>lat, lon</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- forecast log -->
     <section class="card mt">
-      <h2>Forecast query log <span class="hi-sub">find_place → get_weather calls made from this browser</span></h2>
+      <h2>Forecast query log</h2>
       <div class="provenance sm">Search: <input id="logSearch" placeholder="Search place / who / coordinates…"> <button class="btn danger sm mt" id="clearLogBtn">Clear log</button> <button class="btn sm ok mt" id="exportLogBtn">Export CSV</button></div>
       <table id="logTable"><thead><tr><th>When</th><th>Who</th><th>Place</th><th>Coordinates</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- repo documents -->
     <section class="card">
-      <h2>Agent documents <span class="hi-sub">poore prompt aur tool definitions repo se</span></h2>
+      <h2>Agent documents</h2>
       <div class="tabs">
         <button class="on" data-doc="prompts/GRAMCAST_PROMPT.md">Full prompt</button>
         <button data-doc="config/agent_setup.md">Agent setup</button>
@@ -117,15 +91,13 @@
       <pre class="config" id="docView">Select a document…</pre>
     </section>
 
-    <!-- guardrails -->
     <section class="card">
-      <h2>Data honesty rules (enforced) <span class="hi-sub">jo web par bhi, phone par bhi</span></h2>
+      <h2>Data honesty rules (enforced)</h2>
       <ul id="rules" style="line-height:1.9; font-size:0.92rem; padding-left:18px;"></ul>
     </section>
 
-    <!-- WMO reference -->
     <section class="card">
-      <h2>WMO weather-code speech map <span class="hi-sub">agent wahi map bolta hai jo CLI print karta hai</span></h2>
+      <h2>WMO weather-code speech map</h2>
       <table id="wmoTable"><thead><tr><th>Code range</th><th>Hindi speech</th><th>English</th></tr></thead><tbody></tbody></table>
     </section>
 
@@ -140,7 +112,6 @@
     if (session) {
       document.getElementById("logoutBtn").addEventListener("click", GC.auth.logout);
 
-      /* ---- deployment facts ---- */
       const cards = [
         ["Agent", GC.FACTS.agent],
         ["Deployment", GC.FACTS.deploy],
@@ -149,7 +120,8 @@
       ];
       document.getElementById("statusGrid").innerHTML = cards.map(c =>
         '<div class="day-card stat"><div class="l" style="color:var(--muted); font-size:0.8rem;">' + c[0] +
-        '</div><div style="font-weight:700; margin-top:4px; word-break:break-all;">' + GC.esc(c[1]) + "</div></div>").join("");
+        '</div><div style="font-weight:700; margin-top:4px; word-break:break-all;">' + GC.esc(c[1]) + "</div></div>"
+      ).join("");
 
       document.getElementById("factsList").innerHTML = [
         ["Agent", GC.FACTS.agent], ["Deployment", GC.FACTS.deploy],
@@ -158,24 +130,19 @@
         ["Tools", "find_place (geocoding) → get_weather (forecast)"],
       ].map(p => "<dt>" + p[0] + "</dt><dd>" + GC.esc(p[1]) + "</dd>").join("");
 
-      /* ---- stats ---- */      const users = GC.store.get("users", []);
+      const users = GC.store.get("users", []);
       const allLocs = [];
       users.forEach(u => GC.store.get("locs_" + u.id, []).forEach(l => allLocs.push({ user: u.name, ...l })));
       const log = GC.store.get("forecast_log", []);
       const today = new Date().toISOString().slice(0, 10);
-      const todays = log.filter(x => (x.at || "").slice(0, 10) === today).length;
       const callLog = GC.store.get("call_log", []);
-      const allCallRows = callLog.length ? callLog.map(c => Object.assign({}, c)) : [];
 
-      /* ---- admin-only guards ---- */
       const isAdmin = GC.auth.requireRole("admin");
       function adminOnly() {
         if (!isAdmin) { GC.showAlert("Admin panel only — log in as admin.", "bad"); return false; }
         return true;
       }
-      function adminNoChange(fn) {
-        return (e) => { if (!adminOnly()) { e.preventDefault(); e.stopPropagation(); } }
-      }
+
       function seedIfEmpty() {
         if (!GC.store.get("call_log", null)) {
           const d = 24 * 60 * 60 * 1000, now = Date.now();
@@ -198,12 +165,11 @@
         document.getElementById("statGrid").innerHTML = [
           ["Users", usersNow.length], ["Blocked users", usersNow.filter(u => u.blocked).length], ["Saved Panchayats", allLocs.length],
           ["Logged queries", logNow.length], ["Queries today", logNow.filter(x => (x.at || "").slice(0, 10) === todayKey).length],
-        ["Calls in log", callRows.length], ["Call records today", callRows.filter(c => (c.at || "").slice(0, 10) === todayKey).length],
+          ["Calls in log", callRows.length], ["Call records today", callRows.filter(c => (c.at || "").slice(0, 10) === todayKey).length],
         ].map(c => '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>").join("");
       }
       renderStats();
 
-      /* ---- usage compare: web vs phone ---- */
       const users2 = GC.store.get("users", []);
       const callers = [...new Set(callLog.map(c => c.caller))];
       const webCalls = log.filter(x => x.by && !x.by.startsWith("admin@")).length;
@@ -214,7 +180,7 @@
         ["People who used the web", webUsers.length, "ok"],
         ["Calls to the voice agent", phoneCalls, "info"],
         ["People who dialed in", phoneUsers, "warn"],
-        ["Web users vs callers", [webUsers.length, phoneUsers]], // placeholder 2-col row if needed; fallback below
+        ["Web users vs callers", [webUsers.length, phoneUsers]],
       ].map(c => {
         if (Array.isArray(c[2])) {
           const left = '<div class="day-card stat"><div class="v">' + c[2][0] + '</div><div class="l">' + c[0] + "</div></div>";
@@ -223,19 +189,18 @@
         }
         return '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>";
       }).join("");
+
       document.getElementById("usageNote").textContent =
         "Web counts track every find_place → get_weather query in the forecast log (including guests on the landing page). " +
         "Call counts come from the call log below until an Exotel CDR feed is connected. " +
         "Call records and users can be exported here as CSV for verification and record-keeping.";
 
-      /* ---- registry ---- */
       const locTb = document.querySelector("#locTable tbody");
       locTb.innerHTML = allLocs.length ? allLocs.map(l =>
         "<tr><td>" + GC.esc(l.user) + "</td><td>" + GC.esc(l.place_name) + "</td><td>" +
         GC.esc([l.district, l.region].filter(Boolean).join(", ") || "—") + "</td><td>" + l.latitude + ", " + l.longitude + "</td></tr>"
       ).join("") : "<tr><td colspan=4>No saved locations yet.</td></tr>";
 
-      /* ---- users & access control ---- */
       function renderUsers() {
         const users2 = GC.store.get("users", []);
         const t = document.querySelector("#userTable tbody");
@@ -287,10 +252,12 @@
           });
         }
       });
-      /* ---- call log ---- */      const callRows = callLog;
+
+      const callRows = callLog;
       const callByCaller = {};
       callRows.forEach(c => { (callByCaller[c.caller] = callByCaller[c.caller] || []).push(c); });
       const callSenders = Object.keys(callByCaller);
+
       const callLogSearch = document.getElementById("callLogSearch");
       if (callLogSearch) {
         callLogSearch.addEventListener("input", e => {
@@ -347,7 +314,7 @@
           "<tr><td>" + GC.esc(GC.localTime(c.at)) + "</td><td>" + GC.esc(c.caller) + "</td><td>" + GC.esc(c.village) +
           "</td><td>" + GC.esc(c.dur) + "</td><td><span class=" + (c.outcome === "answered" ? '"chip ok"' : '"chip warn"') + ">" + GC.esc(c.outcome) + "</span></td>" +
           '<td class="num"><button class="btn sm ok" data-act="details" data-id="' + GC.uniqueId(callRows.indexOf(c)) + '">Details</button></td>' +
-          '<td class="num"><button class="btn sm" data-act="csv" data-id="' + GC.uniqueId(callRows.indexOf(c)) + '">CSV</button></td></tr>"
+          '<td class="num"><button class="btn sm" data-act="csv" data-id="' + GC.uniqueId(callRows.indexOf(c)) + '">CSV</button></td></tr>'
         ).join("") : "<tr><td colspan=6>No calls yet.</td></tr>";
       }
       renderCallLog();
@@ -409,7 +376,7 @@
         GC.exportCsv("gramcast_call_log_records.csv", rows, ["When (UTC)", "Local time", "Caller", "Village asked", "Duration", "Outcome", "Sample"]);
         GC.showToast("Exported " + rows.length + " raw records.", "ok");
       });
-      /* ---- per-user call history card ---- */
+
       function renderCallHistory() {
         const box = document.getElementById("callHistoryBox");
         if (!box) return;
@@ -445,7 +412,7 @@
         const card = document.getElementById("userCallCard");
         card.style.display = "none";
       });
-      /* ---- forecast query log ---- */
+
       const logRows = log;
       function renderQueryLog() {
         document.querySelector("#logTable tbody").innerHTML = logRows.length ? logRows.map(r =>
@@ -471,25 +438,6 @@
         ).join("") : "<tr><td colspan=4>No queries match." + (q ? " " + GC.esc(q) : "") + "</td></tr>";
       });
 
-      /* ---- documents ---- */
-      const docView = document.getElementById("docView");
-      document.querySelectorAll(".tabs button").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("on"));
-          btn.classList.add("on");
-          docView.textContent = "Loading " + btn.dataset.doc + "…";
-          try {
-            const res = await fetch(btn.dataset.doc);
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            docView.textContent = await res.text();
-          } catch (e) {
-            docView.textContent = "Could not load " + btn.dataset.doc + " (" + e.message + ").\n" +
-              "Open it directly: " + btn.dataset.doc + " in the repo.";
-          }
-        });
-      });
-
-      /* ---- guardrails from README / prompt ---- */
       document.getElementById("rules").innerHTML = [
         "Open-Meteo model data is the only source; never claim IMD / government provenance.",
         "A location name is not data — without a returned forecast block, answer is the NO DATA message.",
@@ -501,7 +449,6 @@
         "No invented warnings, no guaranteed crop outcomes, no unnecessary personal questions.",
       ].map(r => "<li>" + GC.esc(r) + "</li>").join("");
 
-      /* ---- WMO reference table ---- */
       const wmoRows = [
         ["0–2", "saaf / mainly saaf aasmaan", "Clear / mainly clear"], ["3", "badal chhaaye hue", "Overcast"],
         ["45–48", "kohra", "Fog"], ["51–57", "halki runha / buund", "Light drizzle"],
@@ -510,72 +457,8 @@
         ["95", "gajargur-aandhi", "Thunderstorm"], ["99", "kaada garaj purviandhi", "Severe thunderstorm"],
       ];
       document.querySelector("#wmoTable tbody").innerHTML = wmoRows.map(r =>
-        "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>").join("");
-
-      /* ---- call log table ---- */
-      document.querySelector("#callTable tbody").innerHTML = calls.length ? calls.map(c =>
-        "<tr><td>" + new Date(c.at).toLocaleString("en-IN") + "</td><td>" + GC.esc(c.caller) + "</td><td>" + GC.esc(c.village) +
-        "</td><td>" + GC.esc(c.dur) + "</td><td><span class=" + (c.outcome === "answered" ? '"chip ok"' : '"chip warn"') + ">" + GC.esc(c.outcome) + "</span></td></tr>"
-      ).join("") : "<tr><td colspan=5>No calls yet.</td></tr>";
-
-      /* ---- call log CSV export ---- */
-      document.getElementById("exportCallLogBtn").addEventListener("click", () => {
-        const calls = GC.store.get("call_log", []);
-        let csv = "When,Caller,Village asked,Duration,Outcome\n";
-        calls.forEach(c => {
-          const when = new Date(c.at).toLocaleString("en-IN");
-          csv += when + "," + GC.esc(c.caller) + "," + GC.esc(c.village) + "," + GC.esc(c.dur) + "," + GC.esc(c.outcome) + "\n";
-        });
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "call_log.csv";
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-
-      /* ---- call log full details view ---- */
-      document.getElementById("viewCallDetailsBtn").addEventListener("click", () => {
-        const calls = GC.store.get("call_log", []);
-        document.getElementById("callDetailsTable").innerHTML =
-          "<tr><td colspan=2><strong>" + calls.length + " raw call record(s)</strong></td></tr>" +
-          calls.map(c =>
-            "<tr><td>Caller</td><td>" + GC.esc(c.caller) + "</td></tr>" +
-            "<tr><td>Village asked</td><td>" + GC.esc(c.village) + "</td></tr>" +
-            "<tr><td>Duration</td><td>" + GC.esc(c.dur) + "</td></tr>" +
-            "<tr><td>When (ISO)</td><td>" + GC.esc(c.at) + "</td></tr>" +
-            "<tr><td>When (Local)</td><td>" + new Date(c.at).toLocaleString("en-IN") + "</td></tr>" +
-            "<tr><td>Outcome</td><td>" + GC.esc(c.outcome) + "</td></tr>"
-          ).join("");
-        document.getElementById("callDetailsCard").classList.remove("hidden");
-      });
-      document.getElementById("closeCallDetailsBtn").addEventListener("click", () => {
-        document.getElementById("callDetailsCard").classList.add("hidden");
-      });
-
-      /* ---- call log raw records CSV download (verification file) ---- */
-      document.getElementById("exportCallDetailsBtn").addEventListener("click", () => {
-        const calls = GC.store.get("call_log", []);
-        let csv = "When (UTC),Local time,Caller,Village asked,Duration,Outcome,Sample\n";
-        if (calls.length === 0) {
-          csv += "No records yet.\n";
-        } else {
-          calls.forEach(c => {
-            const whenUTC = c.at || "";
-            const local = new Date(c.at).toLocaleString("en-IN");
-            const sample = "sample data - wire Exotel CDR feed here";
-            csv += whenUTC + "," + local + "," + GC.esc(c.caller) + "," + GC.esc(c.village) +
-              "," + GC.esc(c.dur) + "," + GC.esc(c.outcome) + "," + GC.esc(sample) + "\n";
-          });
-        }
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "gramcast_call_log_records.csv";
-        a.click();
-        URL.revokeObjectURL(url);
-      });
+        "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>"
+      ).join("");
 
       document.getElementById("srcLine").textContent = GC.FACTS.source;
     }

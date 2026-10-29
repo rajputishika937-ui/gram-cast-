@@ -298,7 +298,7 @@ const GC = (() => {
       const chipRole = '<span class="chip ' + (u.role === "admin" ? "ok" : "info") + '">' + GC.esc(u.role) + "</span>";
       const chipStatus = '<span class="chip ' + (u.blocked ? "bad" : "ok") + '">' + (u.blocked ? "blocked" : "active") + "</span>";
       const btn = '<button data-act="toggle" data-id="' + u.id + '" class="btn sm ' + (u.blocked ? "out" : "danger") + '"' + (self ? " disabled title='You cannot block your own session'" : "") + ">" + (u.blocked ? "Unblock" : "Block") + "</button>";
-      return "<tr><td>" + GC.esc(u.name) + " <small style='color:var(--muted)'>@" + GC.esc(u.user) + "</small></td>" +
+      return "<tr><td>" + GC.esc(u.name) + " </td>" +
         "<td>" + chipRole + "</td>" + "<td>" + chipStatus + "</td>" + "<td>" + btn + "</td>";
     }).join("");
   }
