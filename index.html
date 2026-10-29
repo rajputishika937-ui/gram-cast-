@@ -151,28 +151,23 @@
         const w = await GC.getWeather(place, 3);
         GC.logQuery(place, null);
 
-        const d = w.daily;
-        let html = '<div class="mt grid cols-3">';
-        for (let i = 0; i < Math.min(3, d.time.length); i++) {
-          const day = { weather_code: d.weather_code[i], temperature_2m_max: d.temperature_2m_max[i],
-            temperature_2m_min: d.temperature_2m_min[i], precipitation_probability_max: d.precipitation_probability_max[i],
-            precipitation_sum: d.precipitation_sum[i], precipitation_hours: d.precipitation_hours[i] };
-          const c = GC.wmoSpeech(day.weather_code);
-          const inten = GC.intensityFor(day);
-          const cls = day.precipitation_probability_max >= 70 ? "rainy" : (Number(day.temperature_2m_max) >= 38 ? "hot" : "");
-          html += '<div class="day-card ' + cls + '">' +
-            '<div class="d">' + d.time[i] + '</div>' +
-            '<div class="cond">' + GC.esc(c.hi) + '</div>' +
-            '<div class="row"><span>Max / Min</span><span>' + day.temperature_2m_max + " / " + day.temperature_2m_min + " °C</span></div>" +
-            '<div class="row"><span>Baarish ki sambhavna</span><span>' + (day.precipitation_probability_max ?? "n/a") + "%</span></div>" +
-            '<div class="row"><span>Intensity</span><span>' + GC.esc(inten.label.split(" / ")[0]) + '</span></div>' +
-            '<div class="row"><span>Total</span><span>' + (day.precipitation_sum ?? "n/a") + " mm</span></div>" +
-            "</div>";
+        const errBox = document.getElementById("quickErr");
+        const out = document.getElementById("quickOut");
+        try {
+          GC.showForecast("quickOut", place, w, 3);
+          out.innerHTML += '<div class="provenance">Location: ' + GC.esc(GC.placeLabel(place)) +
+            " (" + place.latitude + ", " + place.longitude + ") • Source: " + GC.esc(GC.FACTS.source) + "</div>";
+        } catch (err) {
+          out.innerHTML = "";
+          if (err?.noData) {
+            errBox.textContent = err.message;
+          } else {
+            errBox.textContent = err?.message || "Request failed. Please try again.";
+          }
+          errBox.classList.add("show");
+        } finally {
+          btn.disabled = false; btn.textContent = "Get forecast";
         }
-        html += "</div>";
-        html += '<div class="provenance">Location: ' + GC.esc(GC.placeLabel(place)) +
-          " (" + place.latitude + ", " + place.longitude + ") • Source: " + GC.esc(GC.FACTS.source) + "</div>";
-        out.innerHTML = html;
       } catch (err) {
         errBox.textContent = err.message || "Request failed.";
         errBox.classList.add("show");

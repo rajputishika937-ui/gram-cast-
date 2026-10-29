@@ -175,6 +175,8 @@
         const cls = adv.level === "bad" ? "bad" : adv.level === "warn" ? "warn" : "";
 
         let html = '<section class="card">' +
+          '<div class="adv ' + cls + ' mt"><strong>Kheti ke liye aaj:</strong><br>' + GC.esc(adv.lines.join("<br>")) + "</div>" +
+          '<div class="weather-now mt">' +
           '<div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">' +
             '<div><h2>' + GC.esc(GC.placeLabel(place)) + '</h2>' +
             '<span class="w-detail">' + place.latitude + ", " + place.longitude + " • Source: " + GC.esc(GC.FACTS.source) + "</span></div>" +
@@ -190,9 +192,7 @@
             statCard("Max / Min", today.temperature_2m_max + " / " + today.temperature_2m_min + " °C") +
             statCard("Confidence", GC.esc(conf.label), conf.chip) +
           "</div>" +
-          '<div class="advisory ' + cls + ' mt">' +
-            "<strong>Kheti ke liye aaj:</strong><br>" + adv.lines.map(GC.esc).join("<br>") +
-          "</div></section>";
+          '<div class="adv ' + cls + ' mt"><strong>Kheti ke liye aaj:</strong><br>' + GC.esc(adv.lines.join("<br>")) + "</div></section>";
 
         html += '<section class="card"><h2>Agale 5 din <span class="hi-sub">din-by-din, sambhavnatein hain — guarantee nahi</span></h2>' +
           '<div class="grid cols-5 mt">';
@@ -204,6 +204,7 @@
           };
           const c = GC.wmoSpeech(day.weather_code);
           const intense = GC.intensityFor(day);
+          const conf = GC.indicativeConfidence(day);
           const cardCls = intense.level === "heavy" ? "rainy" : (Number(day.temperature_2m_max) >= 38 ? "hot" : "");
           html += '<div class="day-card ' + cardCls + '">' +
             '<div class="d">' + d.time[i] + "</div>" +
@@ -212,6 +213,7 @@
             '<div class="row"><span>Rain prob</span><span>' + (day.precipitation_probability_max ?? "n/a") + "%</span></div>" +
             '<div class="row"><span>Rain</span><span>' + (day.precipitation_sum ?? "n/a") + " mm</span></div>" +
             '<div class="row"><span>Intensity</span><span>' + GC.esc(intense.label.split(" / ")[0]) + "</span></div>" +
+            '<div class="row"><span>Confidence</span><span class="chip ' + conf.chip + '">' + GC.esc(conf.label) + '</span></div>' +
             "</div>";
         }
         html += "</div></section>";

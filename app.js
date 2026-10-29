@@ -193,7 +193,190 @@ const GC = (() => {
   }
   function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 
-  /* phone / agent facts (from README live deployment) */
+  /* ---------- UI helpers ---------- */
+  function showToast(msg, kind, sec) {
+    const box = document.getElementById("toastBox");
+    if (!box) return;
+    const el2 = document.createElement("div");
+    el2.className = "toast" + (kind ? " " + kind : "");
+    el2.textContent = msg;
+    box.appendChild(el2);
+    setTimeout(() => { el2.classList.add("show"); }, 10);
+    setTimeout(() => {
+      el2.classList.remove("show");
+      setTimeout(() => el2.remove(), 320);
+    }, sec || 4200);
+  }
+  function showAlert(msg, kind) {
+    const box = document.getElementById("alertBox");
+    if (!box) return;
+    const el2 = document.createElement("div");
+    el2.className = "alert" + (kind ? " " + kind : "");
+    el2.textContent = msg;
+    box.appendChild(el2);
+    setTimeout(() => { el2.classList.add("show"); }, 10);
+    setTimeout(() => {
+      el2.classList.remove("show");
+      setTimeout(() => el2.remove(), 320);
+    }, 3400);
+  }
+  function showStats(containerId, labels, values) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    box.innerHTML = labels.map((l, i) =>
+      '<div class="day-card stat"><div class="v">' + values[i] + '</div><div class="l">' + l + "</div></div>"
+    ).join("");
+  }
+  function showForecast(containerId, place, w, days) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    const d = w && w.daily;
+    const n = Math.min(days || 3, d ? d.time.length : 0);
+    if (!n) { box.innerHTML = "<p class=\"empty\">No forecast block returned — no data to show.</p>"; return; }
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      const day = {
+        weather_code: d.weather_code[i],
+        temperature_2m_max: d.temperature_2m_max[i],
+        temperature_2m_min: d.temperature_2m_min[i],
+        precipitation_probability_max: d.precipitation_probability_max[i],
+        precipitation_sum: d.precipitation_sum[i],
+        precipitation_hours: d.precipitation_hours[i],
+        time: d.time[i]
+      };
+      const c = GC.wmoSpeech(day.weather_code);
+      const inten = GC.intensityFor(day);
+      const conf = GC.indicativeConfidence(day);
+      const adv = GC.advisoryFor(day);
+      const cls = inten.level === "heavy" ? "rainy" : (Number(day.temperature_2m_max) >= 38 ? "hot" : "");
+      html += '<div class="day-card ' + cls + '">' +
+        '<div class="d">' + GC.esc(day.time) + '</div>' +
+        '<div class="cond">' + GC.esc(c.hi) + '</div>' +
+        '<div class="row"><span>Max / Min °C</span><span>' + day.temperature_2m_max + " / " + day.temperature_2m_min + "</span></div>" +
+        '<div class="row"><span>Baarish ki sambhavna</span><span>' + (day.precipitation_probability_max ?? "n/a") + "%</span></div>" +
+        '<div class="row"><span>Intensit:</span><span>' + GC.esc(inten.label.split(" / ")[0]) + '</span></div>' +
+        '<div class="row"><span>Total</span><span>' + (day.precipitation_sum ?? "n/a") + " mm</span></div>" +
+        '<div class="row"><span>Confidence</span><span>' + GC.esc(conf.label) + '</span></div>' +
+        '<div class="row"><span>Advisory</span><span class="adv-line">' + GC.esc(adv.lines.join(" / ")) + '</span></div>' +
+        "</div>";
+    }
+    box.innerHTML = html;
+  }
+  function renderSaved(locKey, listEl, placeFn, onRender) {
+    const list = GC.store.get(locKey, []);
+    listEl.innerHTML = "";
+    list.forEach((l, i) => {
+      const chip = GC.el('<span class="loc-chip">' + GC.esc(l.place_name) +
+        '<button title="remove" data-i="' + i + '">✕</button></span>');
+      chip.addEventListener("click", e => { if (e.target.tagName !== "BUTTON") { const p = placeFn ? placeFn(l) : l; onRender && onRender(p); } });
+      chip.querySelector("button").addEventListener("click", e => {
+        e.stopPropagation();
+        const arr = GC.store.get(locKey, []); arr.splice(i, 1); GC.store.set(locKey, arr);
+        renderSaved(locKey, listEl);
+      });
+      listEl.appendChild(chip);
+    });
+  }
+  function renderCallLog(tableEl, rows, rowFn) {
+    tableEl.innerHTML = rows.length ? rows.map(r => rowFn(r)).join("") : "<tr><td colspan=\"5\">No calls yet.</td></tr>";
+  }
+  function renderCallDetails(destTable, calls) {
+    destTable.innerHTML =
+      "<tr><td colspan=2><strong>" + calls.length + " raw call record(s)</strong></td></tr>" +
+      calls.map(c =>
+        "<tr><td>Caller</td><td>" + GC.esc(c.caller) + "</td></tr>" +
+        "<tr><td>Village asked</td><td>" + GC.esc(c.village) + "</td></tr>" +
+        "<tr><td>Duration</td><td>" + GC.esc(c.dur) + "</td></tr>" +
+        "<tr><td>When (UTC)</td><td>" + GC.esc(c.at || "") + "</td></tr>" +
+        "<tr><td>When (Local)</td><td>" + GC.esc(new Date(c.at).toLocaleString("en-IN")) + "</td></tr>" +
+        "<tr><td>Outcome</td><td>" + GC.esc(c.outcome) + "</td></tr>"
+      ).join("");
+  }
+  function renderUsers(tableEl, users, session, onToggle) {
+    tableEl.innerHTML = users.map(u => {
+      const self = u.id === session.id;
+      const chipRole = '<span class="chip ' + (u.role === "admin" ? "ok" : "info") + '">' + GC.esc(u.role) + "</span>";
+      const chipStatus = '<span class="chip ' + (u.blocked ? "bad" : "ok") + '">' + (u.blocked ? "blocked" : "active") + "</span>";
+      const btn = '<button data-act="toggle" data-id="' + u.id + '" class="btn sm ' + (u.blocked ? "out" : "danger") + '"' + (self ? " disabled title='You cannot block your own session'" : "") + ">" + (u.blocked ? "Unblock" : "Block") + "</button>";
+      return "<tr><td>" + GC.esc(u.name) + " <small style='color:var(--muted)'>@" + GC.esc(u.user) + "</small></td>" +
+        "<td>" + chipRole + "</td>" + "<td>" + chipStatus + "</td>" + "<td>" + btn + "</td>";
+    }).join("");
+  }
+  function searchLog(rows, q) {
+    if (!q) return rows;
+    const k = q.toLowerCase();
+    return rows.filter(r => (r.place || "").toLowerCase().includes(k) ||
+      (r.caller || "").toString().toLowerCase().includes(k) ||
+      (r.village || "").toString().toLowerCase().includes(k) ||
+      (r.outcome || "").toString().toLowerCase().includes(k) ||
+      (r.at || "").toString().toLowerCase().includes(k) ||
+      (r.atText || "").toString().toLowerCase().includes(k));
+  }
+  function filterToday(rows) { return rows.filter(r => (r.at || "").slice(0, 10) === new Date().toISOString().slice(0, 10)); }
+  function filterOutcome(rows, o) { return o ? rows.filter(r => (r.outcome || "") === o) : rows; }
+  function userFrom(id, users) { return users.find(u => u.id === id); }
+  async function getUserCallHistory(uid) {
+    const users = GC.store.get("users", []);
+    const u = userFrom(uid, users);
+    if (!u) return null;
+    const byId = {};
+    GC.store.get("call_log", []).forEach(c => { (byId[c.caller] = byId[c.caller] || []).push(c); });
+    const list = (byId[uid] || []).map(c => Object.assign({}, c));
+    list.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
+    return { user: u, calls: list };
+  }
+  function escForCsv(s) { return GC.esc(s).replace(/"/g, '""'); }
+  function exportCsv(name, rows, cols) {
+    const lines = [cols.join(",")];
+    rows.forEach(r => { lines.push(cols.map(c => escForCsv(r[c])).join(",")); });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  function pruneSampleRows() {
+    const arr = GC.store.get("call_log", []);
+    const fresh = arr.filter(c => !(c.sample === "sample data - wire Exotel CDR feed here"));
+    if (fresh.length !== arr.length) { GC.store.set("call_log", fresh); return true; }
+    return false;
+  }
+  function localTime(iso) { return new Date(iso).toLocaleString("en-IN"); }
+  function isoDate(iso) { return (iso || "").slice(0, 10); }
+  function nocall() {
+    const r = { caller: "—", village: "—", dur: "—", at: new Date().toISOString(), outcome: "no data" };
+    return r;
+  }
+  function userKey(id) { return "locs_" + id; }
+  function uniqueId(v) { return typeof v === "string" ? v : (v === undefined ? "" : v); }
+  async function getUserCallHistory(uid) {
+    const users = GC.store.get("users", []);
+    const u = users.find(x => x.id === uid);
+    if (!u) return { user: null, calls: [] };
+    const byCaller = {};
+    GC.store.get("call_log", []).forEach(c => { (byCaller[c.caller] = byCaller[c.caller] || []).push(c); });
+    const list = (byCaller[uid] || []).map(c => Object.assign({}, c));
+    list.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
+    return { user: u, calls: list };
+  }
+  function escForCsv(s) { return GC.esc(s).replace(/"/g, '""'); }
+  function exportCsv(name, rows, cols) {
+    const lines = [cols.join(",")];
+    rows.forEach(r => { lines.push(cols.map(c => escForCsv(r[c])).join(",")); });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  function pruneSampleRows() {
+    const arr = GC.store.get("call_log", []);
+    const fresh = arr.filter(c => !(c.sample === "sample data - wire Exotel CDR feed here"));
+    if (fresh.length !== arr.length) { GC.store.set("call_log", fresh); return true; }
+    return false;
+  }
   const FACTS = {
     agent: "GRAMCAST-AI-f7c7a63d-8219",
     deploy: "GRAMCAST-AI-cf467d95-cf03",
@@ -208,10 +391,24 @@ const GC = (() => {
   return {
     findPlace, findPlaces, getWeather, logQuery,
     wmoSpeech, intensityFor, indicativeConfidence, advisoryFor,
-    placeLabel, esc, el, FACTS,
+    placeLabel, esc, el,
+    showToast, showAlert, showStats, showForecast,
+    renderSaved, renderCallLog, renderCallDetails,
+    renderUsers, searchLog, filterToday, filterOutcome,
+    getUserCallHistory, exportCsv, pruneSampleRows, localTime, isoDate,
+    nocall, userKey, FACTS,
     store: { get, set, push },
-    auth: { session, logout, requireRole, seed: seedUsers, loginSubmit },
+    uniqueId,
+    getUserCallHistory,
+    exportCsv,
+    pruneSampleRows,
+    localTime,
+    isoDate,
+    nocall,
+    userKey,
+    auth: { session, logout, requireRole, seed: seedUsers },
   };
+
   // Attach to global window so inline scripts can access GC
   window.GC = GC;
 })();

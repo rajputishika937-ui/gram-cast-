@@ -46,13 +46,35 @@
       <table id="userTable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
     </section>
 
-    <!-- agent call log -->
-    <section class="card">
-      <h2>Phone agent call log <span class="chip warn">sample data</span></h2>
-      <table id="callTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th></tr></thead><tbody></tbody></table>
-      <p class="provenance"><button class="btn sm ok" id="exportCallLogBtn">Export CSV</button> <button class="btn sm" id="viewCallDetailsBtn">View full details</button> — click to see every field of each call (raw records, for verification).</p>
-      <div class="provenance">Sample entries seeded for the demo. Wire an Exotel CDR / webhook export here to replace them with real call data — the schema matches the fields Exotel exposes.</div>
+    <!-- user call history card -->
+    <section class="card mt">
+      <h2>Call history by user <span class="hi-sub">har user ke update ke saath</span></h2>
+      <div id="callHistoryBox"><p>Loading…</p></div>
     </section>
+
+    <section class="card hidden" id="userCallCard" style="display:none;">
+      <h2>Call records — <span id="userHistoryTitle"></span></h2>
+      <div class="provenance sm"><button class="btn sm" id="backToHistory">← Back to user list</button></div>
+      <table id="userCallTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <!-- phone agent call log -->
+    <section class="card mt">
+      <h2>Phone agent call log <span class="chip warn">sample data</span></h2>
+      <div class="provenance sm">Search: <input id="callLogSearch" placeholder="Search caller / village / outcome…"> Filter: <select id="callLogFilter"><option value="">All</option><option value="today">Today</option><option value="answered">Answered</option><option value="no-data">No forecast data</option></select><button class="btn sm ok" id="exportCallLogBtn">Export CSV</button><button class="btn sm" id="viewCallDetailsBtn">View full details</button><button class="btn sm" id="pruneSampleBtn">Prune sample rows</button><button class="btn danger sm" id="clearCallLogBtn">Clear all logs</button></div>
+      <table id="callTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th><th></th></tr></thead><tbody></tbody></table>
+      <div class="provenance">Sample entries seeded for the demo. Click a row to see raw fields or export a per-call CSV. The 'Prune sample rows' button removes the demo (unresolved) rows so you can start from a clean slate.</div>
+    </section>
+
+    <style>
+      #callDetailsCard.hidden { display: none; }
+      #callDetailsTable td { font-size: 0.82rem; word-break: break-all; padding: 5px 8px; }
+      #callDetailsTable tbody tr:nth-child(even) { background: #f7faf8; }
+      .hidden { display: none !important; }
+      #userCallCard .btn { margin-right: 6px; }
+      .num { width: 1%; white-space: nowrap; text-align: center; }
+      .num button { padding: 4px 8px; }
+    </style>
 
     <style>
       #callDetailsCard.hidden { display: none; }
@@ -77,10 +99,11 @@
     </section>
 
     <!-- forecast log -->
-    <section class="card">
+    <section class="card mt">
       <h2>Forecast query log <span class="hi-sub">find_place → get_weather calls made from this browser</span></h2>
+      <div class="provenance sm">Search: <input id="logSearch" placeholder="Search place / who / coordinates…"> <button class="btn danger sm mt" id="clearLogBtn">Clear log</button> <button class="btn sm ok mt" id="exportLogBtn">Export CSV</button></div>
       <table id="logTable"><thead><tr><th>When</th><th>Who</th><th>Place</th><th>Coordinates</th></tr></thead><tbody></tbody></table>
-      <div class="provenance sm"><button class="btn danger sm mt" id="clearLogBtn">Clear log</button> <button class="btn sm ok mt" id="exportLogBtn">Export CSV</button></div></section>
+    </section>
 
     <!-- repo documents -->
     <section class="card">
@@ -135,51 +158,74 @@
         ["Tools", "find_place (geocoding) → get_weather (forecast)"],
       ].map(p => "<dt>" + p[0] + "</dt><dd>" + GC.esc(p[1]) + "</dd>").join("");
 
-      /* ---- stats ---- */
-      const users = GC.store.get("users", []);
+      /* ---- stats ---- */      const users = GC.store.get("users", []);
       const allLocs = [];
       users.forEach(u => GC.store.get("locs_" + u.id, []).forEach(l => allLocs.push({ user: u.name, ...l })));
       const log = GC.store.get("forecast_log", []);
       const today = new Date().toISOString().slice(0, 10);
       const todays = log.filter(x => (x.at || "").slice(0, 10) === today).length;
+      const callLog = GC.store.get("call_log", []);
+      const allCallRows = callLog.length ? callLog.map(c => Object.assign({}, c)) : [];
 
-      /* ---- call log: sample seed (replace with Exotel CDR sync) ---- */
-      if (!GC.store.get("call_log", null)) {
-        const d = 24 * 60 * 60 * 1000, now = Date.now();
-        GC.store.set("call_log", [
-          { caller: "+91 987*** 421", village: "Bhondsi, Gurugram, Haryana",  dur: "0:42", at: new Date(now - 0.2*d).toISOString(), outcome: "answered" },
-          { caller: "+91 981*** 037", village: "Begusarai, Bihar",            dur: "1:07", at: new Date(now - 0.4*d).toISOString(), outcome: "answered" },
-          { caller: "+91 946*** 914", village: "Bhundsi (unresolved)",        dur: "0:19", at: new Date(now - 1.1*d).toISOString(), outcome: "answered" },
-          { caller: "+91 958*** 556", village: "Panipat, Haryana",            dur: "0:31", at: new Date(now - 1.9*d).toISOString(), outcome: "answered" },
-          { caller: "+91 946*** 914", village: "Bhundsi (unresolved)",        dur: "0:12", at: new Date(now - 2.2*d).toISOString(), outcome: "no forecast data" },
-        ]);
+      /* ---- admin-only guards ---- */
+      const isAdmin = GC.auth.requireRole("admin");
+      function adminOnly() {
+        if (!isAdmin) { GC.showAlert("Admin panel only — log in as admin.", "bad"); return false; }
+        return true;
       }
-      const calls = GC.store.get("call_log", []);
-      const callers = [...new Set(calls.map(c => c.caller))];
-      const webUsers = [...new Set(log.map(x => x.by).filter(Boolean))];
+      function adminNoChange(fn) {
+        return (e) => { if (!adminOnly()) { e.preventDefault(); e.stopPropagation(); } }
+      }
+      function seedIfEmpty() {
+        if (!GC.store.get("call_log", null)) {
+          const d = 24 * 60 * 60 * 1000, now = Date.now();
+          GC.store.set("call_log", [
+            { caller: "+91 987*** 421", village: "Bhondsi, Gurugram, Haryana",  dur: "0:42", at: new Date(now - 0.2*d).toISOString(), outcome: "answered", sample: "sample data - wire Exotel CDR feed here" },
+            { caller: "+91 981*** 037", village: "Begusarai, Bihar",            dur: "1:07", at: new Date(now - 0.4*d).toISOString(), outcome: "answered", sample: "sample data - wire Exotel CDR feed here" },
+            { caller: "+91 946*** 914", village: "Bhundsi (unresolved)",        dur: "0:19", at: new Date(now - 1.1*d).toISOString(), outcome: "answered", sample: "sample data - wire Exotel CDR feed here" },
+            { caller: "+91 958*** 556", village: "Panipat, Haryana",            dur: "0:31", at: new Date(now - 1.9*d).toISOString(), outcome: "answered", sample: "sample data - wire Exotel CDR feed here" },
+            { caller: "+91 946*** 914", village: "Bhundsi (unresolved)",        dur: "0:12", at: new Date(now - 2.2*d).toISOString(), outcome: "no forecast data", sample: "sample data - wire Exotel CDR feed here" },
+          ]);
+        }
+      }
+      seedIfEmpty();
 
       function renderStats() {
         const usersNow = GC.store.get("users", []);
         const logNow = GC.store.get("forecast_log", []);
         const todayKey = new Date().toISOString().slice(0, 10);
+        const callRows = GC.store.get("call_log", []);
         document.getElementById("statGrid").innerHTML = [
           ["Users", usersNow.length], ["Blocked users", usersNow.filter(u => u.blocked).length], ["Saved Panchayats", allLocs.length],
           ["Logged queries", logNow.length], ["Queries today", logNow.filter(x => (x.at || "").slice(0, 10) === todayKey).length],
-        ["Calls in log", calls.length], ["Call records today", calls.filter(c => (c.at || "").slice(0, 10) === todayKey).length],
+        ["Calls in log", callRows.length], ["Call records today", callRows.filter(c => (c.at || "").slice(0, 10) === todayKey).length],
         ].map(c => '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>").join("");
       }
       renderStats();
 
       /* ---- usage compare: web vs phone ---- */
+      const users2 = GC.store.get("users", []);
+      const callers = [...new Set(callLog.map(c => c.caller))];
+      const webCalls = log.filter(x => x.by && !x.by.startsWith("admin@")).length;
+      const phoneCalls = callLog.length;
+      const phoneUsers = callers.length;
       document.getElementById("usageGrid").innerHTML = [
         ["Forecast queries on web", log.length, "info"],
         ["People who used the web", webUsers.length, "ok"],
-        ["Calls to the voice agent", calls.length, "info"],
-        ["People who dialed in", callers.length, "warn"],
-      ].map(c => '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>").join("");
+        ["Calls to the voice agent", phoneCalls, "info"],
+        ["People who dialed in", phoneUsers, "warn"],
+        ["Web users vs callers", [webUsers.length, phoneUsers]], // placeholder 2-col row if needed; fallback below
+      ].map(c => {
+        if (Array.isArray(c[2])) {
+          const left = '<div class="day-card stat"><div class="v">' + c[2][0] + '</div><div class="l">' + c[0] + "</div></div>";
+          const right = '<div class="day-card stat"><div class="v">' + c[2][1] + '</div><div class="l">' + c[1] + "</div></div>";
+          return '<div class="grid cols-2" style="grid-template-columns:repeat(2,1fr);">' + left + right + "</div>";
+        }
+        return '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>";
+      }).join("");
       document.getElementById("usageNote").textContent =
         "Web counts track every find_place → get_weather query in the forecast log (including guests on the landing page). " +
-        "Call counts come from the sample call log below until an Exotel CDR feed is connected. " +
+        "Call counts come from the call log below until an Exotel CDR feed is connected. " +
         "Call records and users can be exported here as CSV for verification and record-keeping.";
 
       /* ---- registry ---- */
@@ -192,22 +238,26 @@
       /* ---- users & access control ---- */
       function renderUsers() {
         const users2 = GC.store.get("users", []);
-        document.querySelector("#userTable tbody").innerHTML = users2.map(u => {
+        const t = document.querySelector("#userTable tbody");
+        t.innerHTML = users2.map(u => {
           const self = u.id === session.id;
           return "<tr><td>" + GC.esc(u.name) + " <small style='color:var(--muted)'>@" + GC.esc(u.user) + "</small></td>" +
             '<td><span class="chip ' + (u.role === "admin" ? "ok" : "info") + '">' + GC.esc(u.role) + "</span></td>" +
             '<td><span class="chip ' + (u.blocked ? "bad" : "ok") + '">' + (u.blocked ? "blocked" : "active") + "</span></td>" +
             '<td><button data-act="toggle" data-id="' + u.id + '" class="btn sm ' + (u.blocked ? "out" : "danger") + '" ' +
             (self ? "disabled title='You cannot block your own session'" : "") + ">" +
-            (u.blocked ? "Unblock" : "Block") + "</button></td></tr>";
+            (u.blocked ? "Unblock" : "Block") + "</button></td>" +
+            '<td class="num"><button class="btn sm" data-act="records" data-id="' + u.id + '">Records CSV</button></td>' +
+            '<td class="num"><span class="chip">' + GC.store.get("locs_" + u.id, []).length + '</span></td>';
         }).join("");
       }
       renderUsers();
       document.getElementById("exportUsersBtn").addEventListener("click", () => {
         const users = GC.store.get("users", []);
-        let csv = "User,Role,Status\n";
+        let csv = "User,Email,Role,Status,Phone\n";
         users.forEach(u => {
-          csv += GC.esc(u.name) + "," + GC.esc(u.role) + "," + (u.blocked ? "blocked" : "active") + "\n";
+          const line = u.name + "," + (u.user || "") + "," + GC.esc(u.role) + "," + (u.blocked ? "blocked" : "active") + "," + (u.user || "");
+          csv += line + "\n";
         });
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -220,37 +270,205 @@
       document.getElementById("userTable").addEventListener("click", e => {
         const btn = e.target.closest("button[data-act]");
         if (!btn || btn.disabled) return;
-        const id = Number(btn.dataset.id);
-        const u = GC.store.get("users", []).find(x => x.id === id);
-        if (u) GC.auth.setBlocked(id, !u.blocked);
-        renderUsers();
-        renderStats();
+        const act = btn.dataset.act;
+        if (act === "toggle") {
+          const id = Number(btn.dataset.id);
+          const u = GC.store.get("users", []).find(x => x.id === id);
+          if (u) GC.auth.setBlocked(id, !u.blocked);
+          renderUsers();
+          renderStats();
+        } else if (act === "records") {
+          const id = Number(btn.dataset.id);
+          GC.getUserCallHistory(id).then(({ user, calls }) => {
+            const rows = calls.map(c => ({ caller: c.caller, village: c.village, dur: c.dur, atText: GC.localTime(c.at), outcome: c.outcome }));
+            if (!rows.length) { GC.showAlert("No call records for this user.", "muted"); return; }
+            GC.exportCsv("call_records_" + user.name.replace(/\./g, "_") + ".csv", rows, ["When (Local)", "Caller", "Village asked", "Duration", "Outcome"]);
+            GC.showToast("Exported " + rows.length + " records for " + user.name + " as call_records.csv", "ok");
+          });
+        }
       });
-      /* ---- log ---- */
-      function renderLog() {
-        const rows = GC.store.get("forecast_log", []);
-        document.querySelector("#logTable tbody").innerHTML = rows.length ? rows.map(r =>
+      /* ---- call log ---- */      const callRows = callLog;
+      const callByCaller = {};
+      callRows.forEach(c => { (callByCaller[c.caller] = callByCaller[c.caller] || []).push(c); });
+      const callSenders = Object.keys(callByCaller);
+      const callLogSearch = document.getElementById("callLogSearch");
+      if (callLogSearch) {
+        callLogSearch.addEventListener("input", e => {
+          const q = e.target.value.trim();
+          const rows = GC.searchLog(callRows, q);
+          renderCallLog();
+          GC.showToast(q ? "" + rows.length + " of " + callRows.length + " rows", "", 1200);
+        });
+      }
+      const callLogFilter = document.getElementById("callLogFilter");
+      if (callLogFilter) {
+        callLogFilter.addEventListener("change", e => {
+          const v = e.target.value;
+          const rows = v === "today" ? GC.filterToday(callRows) : v === "answered" ? callRows.filter(c => c.outcome === "answered") : v === "no-data" ? callRows.filter(c => c.outcome === "no forecast data") : callRows;
+          renderCallLog();
+        });
+      }
+      const clearCallLogBtn = document.getElementById("clearCallLogBtn");
+      if (clearCallLogBtn) {
+        clearCallLogBtn.addEventListener("click", () => {
+          if (!confirm("Erase all call records? This cannot be undone.")) return;
+          GC.store.set("call_log", []);
+          renderCallLog();
+          GC.showToast("Call log cleared.", "ok");
+        });
+      }
+      const pruneSampleBtn = document.getElementById("pruneSampleBtn");
+      if (pruneSampleBtn) {
+        pruneSampleBtn.addEventListener("click", () => {
+          const changed = GC.pruneSampleRows();
+          renderCallLog();
+          GC.showAlert(changed ? "Sample (unresolved) rows removed — clean slate." : "No sample rows to prune.", changed ? "ok" : "muted");
+        });
+      }
+      const exportCallLogBtn = document.getElementById("exportCallLogBtn");
+      if (exportCallLogBtn) {
+        exportCallLogBtn.addEventListener("click", () => {
+          const rows = callRows.map(c => ({ when: new Date(c.at).toLocaleString("en-IN"), caller: c.caller, village: c.village, dur: c.dur, outcome: c.outcome }));
+          GC.exportCsv("call_log.csv", rows, ["When (Local)", "Caller", "Village asked", "Duration", "Outcome"]);
+          GC.showToast("Exported " + rows.length + " call logs.", "ok");
+        });
+      }
+      const exportCallDetailsBtn = document.getElementById("exportCallDetailsBtn");
+      if (exportCallDetailsBtn) {
+        exportCallDetailsBtn.addEventListener("click", () => {
+          const rows = callRows.map(c => ({ whenUTC: c.at || "", local: GC.localTime(c.at), caller: c.caller, village: c.village, dur: c.dur, outcome: c.outcome, sample: c.sample || "" }));
+          GC.exportCsv("gramcast_call_log_records.csv", rows, ["When (UTC)", "Local time", "Caller", "Village asked", "Duration", "Outcome", "Sample"]);
+          GC.showToast("Exported " + rows.length + " raw records.", "ok");
+        });
+      }
+
+      function renderCallLog() {
+        document.querySelector("#callTable tbody").innerHTML = callRows.length ? callRows.map(c =>
+          "<tr><td>" + GC.esc(GC.localTime(c.at)) + "</td><td>" + GC.esc(c.caller) + "</td><td>" + GC.esc(c.village) +
+          "</td><td>" + GC.esc(c.dur) + "</td><td><span class=" + (c.outcome === "answered" ? '"chip ok"' : '"chip warn"') + ">" + GC.esc(c.outcome) + "</span></td>" +
+          '<td class="num"><button class="btn sm ok" data-act="details" data-id="' + GC.uniqueId(callRows.indexOf(c)) + '">Details</button></td>' +
+          '<td class="num"><button class="btn sm" data-act="csv" data-id="' + GC.uniqueId(callRows.indexOf(c)) + '">CSV</button></td></tr>"
+        ).join("") : "<tr><td colspan=6>No calls yet.</td></tr>";
+      }
+      renderCallLog();
+      document.getElementById("callTable").addEventListener("click", e => {
+        const btn = e.target.closest("button[data-act]");
+        if (!btn || btn.disabled) return;
+        const act = btn.dataset.act;
+        if (act === "details") {
+          const idx = GC.uniqueId(btn.dataset.id);
+          const c = callRows[idx];
+          if (!c) return;
+          GC.renderCallDetails(document.getElementById("callDetailsTable"), [c]);
+          document.getElementById("callDetailsCard").classList.remove("hidden");
+        } else if (act === "csv") {
+          const idx = GC.uniqueId(btn.dataset.id);
+          const c = callRows[idx];
+          if (!c) return;
+          const rows = [c];
+          GC.exportCsv("call_" + c.caller.replace(/[^a-zA-Z0-9]/g, "_") + ".csv", rows, ["When (UTC)", "Local time", "Caller", "Village asked", "Duration", "Outcome", "Sample"]);
+          GC.showToast("Exported 1 record for " + c.caller, "ok");
+        }
+      });
+      document.getElementById("viewCallDetailsBtn").addEventListener("click", () => {
+        GC.renderCallDetails(document.getElementById("callDetailsTable"), callRows);
+        document.getElementById("callDetailsCard").classList.remove("hidden");
+      });
+      document.getElementById("closeCallDetailsBtn").addEventListener("click", () => {
+        document.getElementById("callDetailsCard").classList.add("hidden");
+      });
+      document.getElementById("callLogSearch").addEventListener("input", e => {
+        const q = e.target.value.trim();
+        const rows = GC.searchLog(callRows, q);
+        renderCallLog();
+        GC.showToast(q ? "" + rows.length + " of " + callRows.length + " rows", "", 1200);
+      });
+      document.getElementById("callLogFilter").addEventListener("change", e => {
+        const v = e.target.value;
+        const rows = v === "today" ? GC.filterToday(callRows) : v === "answered" ? callRows.filter(c => c.outcome === "answered") : v === "no-data" ? callRows.filter(c => c.outcome === "no forecast data") : callRows;
+        renderCallLog();
+      });
+      document.getElementById("clearCallLogBtn").addEventListener("click", () => {
+        if (!confirm("Erase all call records? This cannot be undone.")) return;
+        GC.store.set("call_log", []);
+        renderCallLog();
+        GC.showToast("Call log cleared.", "ok");
+      });
+      document.getElementById("pruneSampleBtn").addEventListener("click", () => {
+        const changed = GC.pruneSampleRows();
+        renderCallLog();
+        GC.showAlert(changed ? "Sample (unresolved) rows removed — clean slate." : "No sample rows to prune.", changed ? "ok" : "muted");
+      });
+      document.getElementById("exportCallLogBtn").addEventListener("click", () => {
+        const rows = callRows.map(c => ({ when: new Date(c.at).toLocaleString("en-IN"), caller: c.caller, village: c.village, dur: c.dur, outcome: c.outcome }));
+        GC.exportCsv("call_log.csv", rows, ["When (Local)", "Caller", "Village asked", "Duration", "Outcome"]);
+        GC.showToast("Exported " + rows.length + " call logs.", "ok");
+      });
+      document.getElementById("exportCallDetailsBtn").addEventListener("click", () => {
+        const rows = callRows.map(c => ({ whenUTC: c.at || "", local: GC.localTime(c.at), caller: c.caller, village: c.village, dur: c.dur, outcome: c.outcome, sample: c.sample || "" }));
+        GC.exportCsv("gramcast_call_log_records.csv", rows, ["When (UTC)", "Local time", "Caller", "Village asked", "Duration", "Outcome", "Sample"]);
+        GC.showToast("Exported " + rows.length + " raw records.", "ok");
+      });
+      /* ---- per-user call history card ---- */
+      function renderCallHistory() {
+        const box = document.getElementById("callHistoryBox");
+        if (!box) return;
+        const users3 = GC.store.get("users", []);
+        const cards = users3.map(u => {
+          const list = (GC.store.get("call_log", []).filter(c => c.caller === u.id.toString()));
+          const perDay = {};
+          list.forEach(c => { perDay[new Date(c.at).toDateString()] = (perDay[new Date(c.at).toDateString()] || 0) + 1; });
+          const lines = Object.keys(perDay).map(d => d + " " + perDay[d]).join(", ") || "—";
+          return '<div class="card mt"><h4>' + GC.esc(u.name) + ' — ' + (GC.store.get("locs_" + u.id, []).length) + ' saved panchayats</h4>' +
+            '<p class="sub">' + list.length + ' call(s) — ' + GC.esc(lines) + '</p>' +
+            '<div class="provenance sm"><button class="btn sm" data-act="userHistory" data-id="' + u.id + '">Open records</button></div></div>';
+        }).join("");
+        box.innerHTML = cards || "<p>No users with call records.</p>";
+      }
+      renderCallHistory();
+      document.getElementById("callHistoryBox").addEventListener("click", e => {
+        const btn = e.target.closest("button[data-act]");
+        if (!btn) return;
+        const id = Number(btn.dataset.id);
+        GC.getUserCallHistory(id).then(({ user, calls }) => {
+          const card = document.getElementById("userCallCard");
+          const table = document.getElementById("userCallTable");
+          card.style.display = "";
+          table.innerHTML = calls.length ? calls.map(c =>
+            "<tr><td>" + GC.esc(GC.localTime(c.at)) + "</td><td>" + GC.esc(c.caller) + "</td><td>" + GC.esc(c.village) +
+            "</td><td>" + GC.esc(c.dur) + "</td><td><span class=" + (c.outcome === "answered" ? '"chip ok"' : '"chip warn"') + ">" + GC.esc(c.outcome) + "</span></td></tr>"
+          ).join("") : "<tr><td colspan=5>No calls yet.</td></tr>";
+          card.querySelector("button[id='backToHistory']").style.display = "inline-block";
+        });
+      });
+      document.getElementById("backToHistory").addEventListener("click", () => {
+        const card = document.getElementById("userCallCard");
+        card.style.display = "none";
+      });
+      /* ---- forecast query log ---- */
+      const logRows = log;
+      function renderQueryLog() {
+        document.querySelector("#logTable tbody").innerHTML = logRows.length ? logRows.map(r =>
           "<tr><td>" + GC.esc(r.atText || r.at) + "</td><td>" + GC.esc(r.by) + "</td><td>" + GC.esc(r.place) +
           "</td><td>" + r.lat + ", " + r.lon + "</td></tr>"
         ).join("") : "<tr><td colspan=4>No queries logged yet.</td></tr>";
       }
-      renderLog();
+      renderQueryLog();
       document.getElementById("clearLogBtn").addEventListener("click", () => {
-        GC.store.set("forecast_log", []); renderLog();
+        GC.store.set("forecast_log", []); renderQueryLog();
       });
       document.getElementById("exportLogBtn").addEventListener("click", () => {
-        const log = GC.store.get("forecast_log", []);
-        let csv = "When,Who,Place,Coordinates\n";
-        log.forEach(r => {
-          const when = (r.at || "").slice(0, 10);
-          csv += when + "," + GC.esc(r.by) + "," + GC.esc(r.place) + "," + r.lat + "," + r.lon + "\n";
-        });
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "forecast_query_log.csv";
-        a.click();
-        URL.revokeObjectURL(url);
+        const rows = logRows.map(r => ({ when: (r.at || "").slice(0, 10), who: r.by, place: r.place, coords: r.lat + ", " + r.lon }));
+        GC.exportCsv("forecast_query_log.csv", rows, ["When", "Who", "Place", "Coordinates"]);
+        GC.showToast("Exported " + rows.length + " queries.", "ok");
+      });
+      document.getElementById("logSearch").addEventListener("input", e => {
+        const q = e.target.value.trim();
+        const rows = GC.searchLog(logRows, q);
+        document.querySelector("#logTable tbody").innerHTML = rows.length ? rows.map(r =>
+          "<tr><td>" + GC.esc(r.atText || r.at) + "</td><td>" + GC.esc(r.by) + "</td><td>" + GC.esc(r.place) +
+          "</td><td>" + r.lat + ", " + r.lon + "</td></tr>"
+        ).join("") : "<tr><td colspan=4>No queries match." + (q ? " " + GC.esc(q) : "") + "</td></tr>";
       });
 
       /* ---- documents ---- */
