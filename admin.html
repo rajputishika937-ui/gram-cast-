@@ -50,8 +50,23 @@
     <section class="card">
       <h2>Phone agent call log <span class="chip warn">sample data</span></h2>
       <table id="callTable"><thead><tr><th>When</th><th>Caller</th><th>Village asked</th><th>Duration</th><th>Outcome</th></tr></thead><tbody></tbody></table>
+      <p class="provenance"><button class="btn sm ok" id="exportCallLogBtn">Export CSV</button> <button class="btn sm" id="viewCallDetailsBtn">View full details</button> — click to see every field of each call (raw records, for verification).</p>
       <div class="provenance">Sample entries seeded for the demo. Wire an Exotel CDR / webhook export here to replace them with real call data — the schema matches the fields Exotel exposes.</div>
-      <div class="provenance sm"><button class="btn sm ok" id="exportCallLogBtn">Export CSV</button></div>
+    </section>
+
+    <style>
+      #callDetailsCard.hidden { display: none; }
+      #callDetailsTable td { font-size: 0.82rem; word-break: break-all; padding: 5px 8px; }
+      #callDetailsTable tbody tr:nth-child(even) { background: #f7faf8; }
+      .hidden { display: none !important; }
+    </style>
+
+    <!-- call log details (raw records inspection) -->
+    <section class="card hidden" id="callDetailsCard">
+      <h2>Call log — full records <span class="hi-sub">raw call data ke details (csv / excel me download ke liye)</span></h2>
+      <p class="provenance">Raw call records with every field. Export as CSV for verification and record-keeping.</p>
+      <div class="provenance sm"><button class="btn sm" id="exportCallDetailsBtn">Download all records as CSV</button> <button class="btn sm" id="closeCallDetailsBtn">Close</button></div>
+      <table id="callDetailsTable"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
     </section>
 
     <!-- locations registry -->
@@ -150,6 +165,7 @@
         document.getElementById("statGrid").innerHTML = [
           ["Users", usersNow.length], ["Blocked users", usersNow.filter(u => u.blocked).length], ["Saved Panchayats", allLocs.length],
           ["Logged queries", logNow.length], ["Queries today", logNow.filter(x => (x.at || "").slice(0, 10) === todayKey).length],
+        ["Calls in log", calls.length], ["Call records today", calls.filter(c => (c.at || "").slice(0, 10) === todayKey).length],
         ].map(c => '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>").join("");
       }
       renderStats();
@@ -163,7 +179,8 @@
       ].map(c => '<div class="day-card stat"><div class="v">' + c[1] + '</div><div class="l">' + c[0] + "</div></div>").join("");
       document.getElementById("usageNote").textContent =
         "Web counts track every find_place → get_weather query in the forecast log (including guests on the landing page). " +
-        "Call counts come from the sample call log below until an Exotel CDR feed is connected.";
+        "Call counts come from the sample call log below until an Exotel CDR feed is connected. " +
+        "Call records and users can be exported here as CSV for verification and record-keeping.";
 
       /* ---- registry ---- */
       const locTb = document.querySelector("#locTable tbody");
@@ -295,6 +312,49 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; a.download = "call_log.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      /* ---- call log full details view ---- */
+      document.getElementById("viewCallDetailsBtn").addEventListener("click", () => {
+        const calls = GC.store.get("call_log", []);
+        document.getElementById("callDetailsTable").innerHTML =
+          "<tr><td colspan=2><strong>" + calls.length + " raw call record(s)</strong></td></tr>" +
+          calls.map(c =>
+            "<tr><td>Caller</td><td>" + GC.esc(c.caller) + "</td></tr>" +
+            "<tr><td>Village asked</td><td>" + GC.esc(c.village) + "</td></tr>" +
+            "<tr><td>Duration</td><td>" + GC.esc(c.dur) + "</td></tr>" +
+            "<tr><td>When (ISO)</td><td>" + GC.esc(c.at) + "</td></tr>" +
+            "<tr><td>When (Local)</td><td>" + new Date(c.at).toLocaleString("en-IN") + "</td></tr>" +
+            "<tr><td>Outcome</td><td>" + GC.esc(c.outcome) + "</td></tr>"
+          ).join("");
+        document.getElementById("callDetailsCard").classList.remove("hidden");
+      });
+      document.getElementById("closeCallDetailsBtn").addEventListener("click", () => {
+        document.getElementById("callDetailsCard").classList.add("hidden");
+      });
+
+      /* ---- call log raw records CSV download (verification file) ---- */
+      document.getElementById("exportCallDetailsBtn").addEventListener("click", () => {
+        const calls = GC.store.get("call_log", []);
+        let csv = "When (UTC),Local time,Caller,Village asked,Duration,Outcome,Sample\n";
+        if (calls.length === 0) {
+          csv += "No records yet.\n";
+        } else {
+          calls.forEach(c => {
+            const whenUTC = c.at || "";
+            const local = new Date(c.at).toLocaleString("en-IN");
+            const sample = "sample data - wire Exotel CDR feed here";
+            csv += whenUTC + "," + local + "," + GC.esc(c.caller) + "," + GC.esc(c.village) +
+              "," + GC.esc(c.dur) + "," + GC.esc(c.outcome) + "," + GC.esc(sample) + "\n";
+          });
+        }
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "gramcast_call_log_records.csv";
         a.click();
         URL.revokeObjectURL(url);
       });
